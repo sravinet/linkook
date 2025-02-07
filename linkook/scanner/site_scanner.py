@@ -4,17 +4,23 @@ import re
 import logging
 import requests
 from linkook.provider.provider import Provider
+from linkook.scanner.request_manager import RequestManager
 from typing import Set, Dict, Any, Optional, Tuple, List
 
 
 class SiteScanner:
-    def __init__(self, timeout: int = 10, proxy: Optional[str] = None):
+    def __init__(self, timeout: int = 10, proxy: Optional[str] = None, min_delay: float = 1.0, max_delay: float = 3.0):
         """
         Initialize SiteScanner with optional timeout and proxy.
         Add data structures to track visited URLs and discovered accounts.
+
+        :param timeout: Request timeout in seconds
+        :param proxy: Optional proxy URL
+        :param min_delay: Minimum delay between requests in seconds
+        :param max_delay: Maximum delay between requests in seconds
         """
         self.timeout = timeout
-        self.proxy = proxy
+        self.proxies = [proxy] if proxy else []
         self.all_providers = {}  # Dictionary of all providers
         self.current_provider = None  # Current provider
         self.to_scan = {}  # Dictionary of providers to scan
@@ -25,6 +31,14 @@ class SiteScanner:
         self.check_breach = False  # Flag to check Hudson Rock breach
 
         self.email_regex = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+        
+        # Initialize request manager with anti-detection measures
+        self.request_manager = RequestManager(
+            min_delay=min_delay,
+            max_delay=max_delay,
+            proxies=self.proxies,
+            timeout=timeout
+        )
 
     def deep_scan(self, user: str) -> dict:
 
@@ -48,7 +62,7 @@ class SiteScanner:
 
         result["profile_url"] = profile_url
 
-        status_code, html_content = self.fetch_user_profile(user)
+        status_code, html_content, _ = self.fetch_user_profile(user)
         check_res = self.check_availability(status_code, html_content)
 
         result["found"] = check_res["found"]
@@ -162,54 +176,45 @@ class SiteScanner:
         self, user: str
     ) -> Tuple[Optional[int], Optional[str], list]:
         """
-        Overrides the base method to return status_code, HTML content, and redirect history.
-        If an exception occurs or the request fails, returns (None, None, []).
+        Fetch a user's profile page.
 
-        :param user: The username to fetch.
-        :return: A tuple (status_code, html_content, redirect_history).
+        :param user: Username to check
+        :return: Tuple of (status_code, html_content, cookies)
         """
-
         provider = self.current_provider
-        method = provider.request_method or "GET"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:129.0) Gecko/20100101 Firefox/129.0",
-        }
-        if provider.headers:
-            headers.update(provider.headers)
+        profile_url = provider.build_url(user)
+        query_url = getattr(provider, "query_url", None)
+        request_method = getattr(provider, "request_method", "GET")
+        request_payload = getattr(provider, "request_payload", None)
+        headers = getattr(provider, "headers", None)
 
-        payload = provider.build_payload(user) or {}
-
-        if provider.query_url:
-            url = provider.build_url(user, provider.query_url)
+        if query_url:
+            url = provider.interpolate_user(query_url, user)
         else:
-            url = provider.build_url(user)
+            url = profile_url
 
         try:
-            session = requests.Session()
-            if self.proxy:
-                session.proxies = {
-                    "http": self.proxy,
-                    "https": self.proxy,
+            if request_payload:
+                request_payload = {
+                    k: provider.interpolate_user(v, user) if isinstance(v, str) else v
+                    for k, v in request_payload.items()
                 }
-            if method == "GET":
-                logging.info(f"Fetching URL: {url}")
-                resp = session.get(
-                    url, headers=headers, timeout=self.timeout, allow_redirects=True
-                )
-            elif method.upper() == "POST":
-                logging.info(f"Fetching URL: {url}")
-                resp = requests.post(
-                    url,
-                    json=payload,
-                    headers=headers,
-                    timeout=self.timeout,
-                    allow_redirects=True,
-                )
-            logging.info(f"Response status code: {resp.status_code}")
-            return resp.status_code, resp.text
+
+            response = self.request_manager.request(
+                method=request_method,
+                url=url,
+                headers=headers,
+                json=request_payload if request_method == "POST" else None
+            )
+
+            if response is None:
+                return None, None, []
+
+            return response.status_code, response.text, response.cookies
+
         except Exception as e:
-            logging.error(f"Failed to fetch profile page for URL {url}: {e}")
-            return None, None
+            logging.error(f"Error fetching profile for {url}: {str(e)}")
+            return None, None, []
 
     def search_in_response(self, html: str) -> bool:
 
@@ -324,16 +329,24 @@ class SiteScanner:
         url = f"https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email?email={email}"
         associated_string = "This email address is associated with a computer that was infected by an info-stealer, all the credentials saved on this computer are at risk of being accessed by cybercriminals. Visit https://www.hudsonrock.com/free-tools to discover additional free tools and Infostealers related data."
         not_associated_string = "This email address is not associated with a computer infected by an info-stealer. Visit https://www.hudsonrock.com/free-tools to discover additional free tools and Infostealers related data."
-        res = requests.get(url)
-        status_code = res.status_code
-        json_content = res.json()
-        if status_code is None:
+        
+        response = self.request_manager.request("GET", url)
+        if response is None:
             return False
-        if status_code == 404:
-            return False
-        if status_code == 200:
-            if json_content["message"] == associated_string:
-                return True
-            elif json_content["message"] == not_associated_string:
-                return False
+            
+        try:
+            json_content = response.json()
+            if response.status_code == 200:
+                if json_content["message"] == associated_string:
+                    return True
+                elif json_content["message"] == not_associated_string:
+                    return False
+        except Exception as e:
+            logging.error(f"Error checking HudsonRock for {email}: {str(e)}")
+            
         return False
+
+    def __del__(self):
+        """Cleanup when the scanner is destroyed."""
+        if hasattr(self, 'request_manager'):
+            self.request_manager.close()
