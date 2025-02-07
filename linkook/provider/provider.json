@@ -28,7 +28,7 @@
         "profileUrl": "https://www.linkedin.com/in/^USER^",
         "regexUrl": "https://(?:www.|in.)?linkedin.com/in/^USER^",
         "keyword": {
-            "notMatch": ["This page doesn’t exist"]
+            "notMatch": ["This page doesn't exist"]
         },
         "isUserId": true
     },
@@ -110,7 +110,7 @@
         "profileUrl": "https://x.com/^USER^",
         "regexUrl": "https://(?:www.|mobile.)?(?:twitter|x).com/^USER^",
         "keyword": {
-            "notMatch": ["This account doesn’t exist", "Try searching for another"],
+            "notMatch": ["This account doesn't exist", "Try searching for another"],
             "Match": ["followers", "following"]
         }
     },
@@ -238,7 +238,7 @@
         "mainUrl": "https://developer.apple.com",
         "profileUrl": "https://developer.apple.com/forums/profile/^USER^",
         "keyword": {
-            "notMatch": ["The page you’re looking for can’t be found"]
+            "notMatch": ["The page you're looking for can't be found"]
         }
     },
     "Apple Discussions": {
@@ -267,7 +267,7 @@
         "profileUrl": "https://www.paypal.com/paypalme/^USER^",
         "keyword": {
             "notMatch": [
-                "We can’t find this profile", "Make sure the link’s right and profile hasn’t been turned off."],
+                "We can't find this profile", "Make sure the link's right and profile hasn't been turned off."],
             "Match": ["Send", "Report this link"]
         }
     },
@@ -306,7 +306,7 @@
         "mainUrl": "https://vimeo.com",
         "profileUrl": "https://vimeo.com/^USER^",
         "keyword": {
-            "notMatch": ["Sorry, we couldn’t find that page"]
+            "notMatch": ["Sorry, we couldn't find that page"]
         }
     },
     "Patreon": {
@@ -335,7 +335,7 @@
         "mainUrl": "https://www.fiverr.com",
         "profileUrl": "https://www.fiverr.com/^USER^",
         "keyword": {
-            "notMatch": ["Oops! That page doesn’t exist or is unavailable."],
+            "notMatch": ["Oops! That page doesn't exist or is unavailable."],
             "Match": ["Contact Me", "About me"]
         }
     },
@@ -343,7 +343,7 @@
         "mainUrl": "https://www.upwork.com",
         "profileUrl": "https://www.upwork.com/freelancers/^USER^",
         "keyword": {
-            "notMatch": ["Sorry, the page you’re looking for is unavailable"]
+            "notMatch": ["Sorry, the page you're looking for is unavailable"]
         }
     },
     "Bitbucket": {
@@ -357,7 +357,7 @@
         "mainUrl": "https://slack.com",
         "profileUrl": "https://^USER^.slack.com",
         "keyword": {
-            "notMatch": ["This workspace doesn’t exist"]
+            "notMatch": ["This workspace doesn't exist"]
         }
     },
     "Stack Overflow": {
@@ -414,7 +414,7 @@
         "mainUrl": "https://www.wattpad.com",
         "profileUrl": "https://www.wattpad.com/user/^USER^",
         "keyword": {
-            "notMatch": ["Oops! That page can’t be found."]
+            "notMatch": ["Oops! That page can't be found."]
         }
     },
     "Kaggle": {
@@ -466,5 +466,37 @@
             "notMatch": ["Looks like the page you are looking for doesn't exist."],
             "Match": ["Hire Me"]
         }
+    },
+    "Google": {
+        "mainUrl": "https://google.com",
+        "profileUrl": "https://myaccount.google.com/profile",
+        "useGHunt": true,
+        "ghuntConfig": {
+            "retryCount": 3,
+            "requireAuth": true,
+            "services": ["email", "gaia"]
+        },
+        "isConnected": true,
+        "hasEmail": true,
+        "handle_regex": {
+            "YouTube": "youtube\\.com/@([^/\\s]+)",
+            "GitHub": "github\\.com/([^/\\s]+)",
+            "LinkedIn": "linkedin\\.com/in/([^/\\s]+)",
+            "Twitter": "twitter\\.com/([^/\\s]+)",
+            "Instagram": "instagram\\.com/([^/\\s]+)",
+            "Facebook": "facebook\\.com/([^/\\s]+)"
+        }
+    },
+    "Gmail": {
+        "mainUrl": "https://gmail.com",
+        "profileUrl": "mailto:^USER^@gmail.com",
+        "useGHunt": true,
+        "ghuntConfig": {
+            "retryCount": 3,
+            "requireAuth": true,
+            "services": ["email"]
+        },
+        "isConnected": true,
+        "hasEmail": true
     }
 }

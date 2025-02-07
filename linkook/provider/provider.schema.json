@@ -36,6 +36,36 @@
                     "type": "boolean",
                     "description": "Indicates if the profile page has an email address."
                 },
+                "useGHunt": {
+                    "type": "boolean",
+                    "description": "Indicates if this provider should use GHunt for enhanced Google service scanning."
+                },
+                "ghuntConfig": {
+                    "type": "object",
+                    "description": "Configuration for GHunt-enabled providers",
+                    "properties": {
+                        "retryCount": {
+                            "type": "integer",
+                            "description": "Number of retries for GHunt operations",
+                            "minimum": 1,
+                            "default": 3
+                        },
+                        "requireAuth": {
+                            "type": "boolean",
+                            "description": "Whether GHunt authentication is required",
+                            "default": true
+                        },
+                        "services": {
+                            "type": "array",
+                            "description": "List of GHunt services to use",
+                            "items": {
+                                "type": "string",
+                                "enum": ["email", "gaia", "drive", "photos"]
+                            }
+                        }
+                    },
+                    "required": ["services"]
+                },
                 "keyword": {
                     "type": "object",
                     "description": "Match and notMatch keyword lists for existence checks.",
@@ -59,16 +89,11 @@
                 },
                 "handle_regex": {
                     "type": "object",
-                    "description": "Regular expression for the username."
+                    "description": "Regular expressions for extracting handles from different platforms."
                 },
                 "request_method": {
                     "type": "string",
-                    "enum": [
-                        "GET",
-                        "POST",
-                        "HEAD",
-                        "PUT"
-                    ]
+                    "enum": ["GET", "POST", "HEAD", "PUT"]
                 },
                 "request_payload": {
                     "type": "object"
@@ -84,9 +109,7 @@
                     }
                 }
             },
-            "required": [
-                "profileUrl"
-            ],
+            "required": ["profileUrl"],
             "additionalProperties": false
         }
     },
