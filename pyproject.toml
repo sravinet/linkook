@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "linkook"
+version = "1.0.1"
+authors = [
+    { name = "Jack Ju1y", email = "ju1y0x0@proton.me" },
+]
+description = "A tool for scanning and enumerating linked social accounts."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2",
+    "colorama>=0.4.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/JackJuly/linkook"
+Repository = "https://github.com/JackJuly/linkook"
+
+[project.scripts]
+linkook = "linkook.linkook:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["linkook"]
+
+[tool.hatch.build]
+include = [
+    "linkook/**/*.py",
+    "linkook/provider/provider.json",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov {args:linkook} {args:tests}"
+cov-report = ["- coverage combine", "coverage report"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q" 
