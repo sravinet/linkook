@@ -3,10 +3,11 @@
 import time
 import random
 import logging
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Union
 from requests import Session
 from requests.exceptions import RequestException
 from linkook.scanner.rate_limiter import RateLimiter
+from linkook.scanner.proxy_manager import ProxyManager
 
 
 class RequestManager:
@@ -48,7 +49,7 @@ class RequestManager:
         self,
         min_delay: float = 1.0,
         max_delay: float = 3.0,
-        proxies: Optional[List[str]] = None,
+        proxies: Optional[Union[str, List[str]]] = None,
         timeout: int = 10,
         default_rate: int = 30,
         default_burst: int = 10,
@@ -58,18 +59,19 @@ class RequestManager:
 
         :param min_delay: Minimum delay between requests in seconds
         :param max_delay: Maximum delay between requests in seconds
-        :param proxies: List of proxy URLs to rotate through
+        :param proxies: Proxy string, list of proxies, or path to proxy file
         :param timeout: Request timeout in seconds
         :param default_rate: Default requests per minute for unknown providers
         :param default_burst: Default burst size for unknown providers
         """
         self.min_delay = min_delay
         self.max_delay = max_delay
-        self.proxies = proxies or []
         self.timeout = timeout
         self.session = Session()
         self.last_request_time = 0
-        self._current_proxy_index = 0
+        
+        # Initialize proxy manager
+        self.proxy_manager = ProxyManager(proxies)
         
         # Initialize rate limiter
         self.rate_limiter = RateLimiter(
@@ -80,19 +82,6 @@ class RequestManager:
     def _get_random_user_agent(self) -> str:
         """Get a random user agent from the list."""
         return random.choice(self.USER_AGENTS)
-
-    def _get_next_proxy(self) -> Optional[Dict[str, str]]:
-        """Get the next proxy from the rotation."""
-        if not self.proxies:
-            return None
-        
-        proxy = self.proxies[self._current_proxy_index]
-        self._current_proxy_index = (self._current_proxy_index + 1) % len(self.proxies)
-        
-        return {
-            "http": proxy,
-            "https": proxy
-        }
 
     def _randomize_headers(self, base_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """
@@ -116,7 +105,7 @@ class RequestManager:
         :param url: Target URL to check rate limits for
         """
         # Get next proxy before rate limiting
-        proxy = self._get_next_proxy()
+        proxy = self.proxy_manager.get_next()
         
         # First check provider-specific rate limit with proxy info
         wait_time = self.rate_limiter.wait_if_needed(url, proxy)
@@ -168,7 +157,7 @@ class RequestManager:
             return response
             
         except RequestException as e:
-            logging.error(f"Request failed for {url}: {str(e)}")
+            logging.error(f"Request failed for {url} using proxy {proxy}: {str(e)}")
             return None
 
     def close(self):
