@@ -1,0 +1,25 @@
+[project]
+name = "linkook"
+version = "1.0.1"
+authors = [
+    { name = "Jack Ju1y", email = "ju1y0x0@proton.me" },
+]
+description = "A tool for scanning and enumerating linked social accounts."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2",
+    "colorama>=0.4.6",
+    "ghunt @ git+https://github.com/mxrch/GHunt.git",
+    "aiohttp>=3.8.0",
+    "beautifulsoup4>=4.9.3",
+    "holehe @ git+https://github.com/megadose/holehe.git",
+    "trio>=0.22.0",
+    "httpx>=0.24.0"
+] 

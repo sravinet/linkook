@@ -4,6 +4,7 @@ import re
 import logging
 import requests
 from linkook.provider.provider import Provider
+from linkook.scanner.email_scanner import EmailScanner
 from typing import Set, Dict, Any, Optional, Tuple, List
 
 
@@ -25,6 +26,7 @@ class SiteScanner:
         self.check_breach = False  # Flag to check Hudson Rock breach
 
         self.email_regex = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+        self.email_scanner = EmailScanner()
 
     def deep_scan(self, user: str) -> dict:
 
@@ -309,12 +311,33 @@ class SiteScanner:
     def search_info(self, html: str) -> Dict[str, Any]:
         """
         Search for related personal information in the HTML content.
+        Now enhanced with Holehe email scanning.
         """
         result = {"emails": set()}
 
+        # Find emails using regex
         matches = re.findall(self.email_regex, html)
         if matches:
             result["emails"].update(matches)
+            
+            # Scan each discovered email with Holehe
+            for email in matches:
+                try:
+                    holehe_results = self.email_scanner.scan_email_sync(email)
+                    if holehe_results:
+                        # Add any new services discovered through Holehe
+                        for service, service_data in holehe_results.items():
+                            if service in self.all_providers:
+                                provider = self.all_providers[service]
+                                if service not in self.found_accounts:
+                                    self.found_accounts[service] = set()
+                                if service_data.get('exists', False):
+                                    url = provider.build_url(email)
+                                    self.found_accounts[service].add(url)
+                                    logging.info(f"Found account through Holehe: {service} - {url}")
+                except Exception as e:
+                    logging.error(f"Error scanning email with Holehe: {str(e)}")
+
         return result
 
     def check_HudsonRock(self, email: str) -> bool:
